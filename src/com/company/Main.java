@@ -1,10 +1,22 @@
 package com.company;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 public class Main {
-    static int numCities = 4;
+    static int numCities = 21;
     static int matingPoolSize = 4;
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         int[][] distance = new int[numCities][numCities];
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Main.class.getResourceAsStream("/Data.txt"))))) {
+            for (int i = 0; i < numCities; i++) {
+                String line = br.readLine();
+                StringTokenizer st = new StringTokenizer(line);
+                for (int j = 0; j < numCities; j++) {
+                    distance[i][j] = Integer.parseInt(st.nextToken());
+                }
+            }
+        }
         populateRandom(distance);
         System.out.println("Random distances: " +
                 Arrays.deepToString(distance));
