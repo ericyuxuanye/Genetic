@@ -8,7 +8,7 @@ import java.util.*;
 public class Main {
     static int numCities = 21;
     static int matingPoolSize = 50;
-    static int generations = 500;
+    static int generations = 1000;
     static final Random rand = new Random();
     static final int[][] distances = new int[numCities][numCities];
 
@@ -20,7 +20,7 @@ public class Main {
     /**
      * Number to delete and add each round
      */
-    static final int modifySize = 10;
+    static final int modifySize = generations / 2;
 
     public static void main(String[] args) throws IOException {
 
