@@ -7,27 +7,61 @@ import java.util.*;
 
 public class Main {
     static int numCities = 21;
-    static int matingPoolSize = 4;
+    static int matingPoolSize = 50;
+    static int generations = 500;
     static final Random rand = new Random();
+    static final int[][] distances = new int[numCities][numCities];
+
+    /**
+     * number of mutations per copy
+     */
+    static final int numMutations = 2;
+
+    /**
+     * Number to delete and add each round
+     */
+    static final int modifySize = 10;
+
     public static void main(String[] args) throws IOException {
-        int[][] distance = new int[numCities][numCities];
+
         try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Main.class.getResourceAsStream("/Data.txt"))))) {
             for (int i = 0; i < numCities; i++) {
                 String line = br.readLine();
                 StringTokenizer st = new StringTokenizer(line);
                 for (int j = 0; j < numCities; j++) {
-                    distance[i][j] = Integer.parseInt(st.nextToken());
+                    distances[i][j] = Integer.parseInt(st.nextToken());
                 }
             }
         }
-        //method to pick random tour
-        int[] randomTour = randomTour(numCities);
-        System.out.println("Random Tour: " + getTour(randomTour));
-        //method to evaluate fitness of a tour
-        System.out.println("Tour Fitness: " + tourFitness(distance,
-                randomTour));
         //Pick random tours to make up mating pool
-        int[][] matingPool = KrandomTours(numCities, matingPoolSize);
+        int[][] matingPool = KrandomTours(matingPoolSize);
+        int[][] temp = new int[matingPoolSize][numCities - 1];
+        int[][] bestPerformers = new int[modifySize][];
+        Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
+        for (int i = 0; i < generations; i++) {
+            // print performance of generation
+            int[] best = matingPool[0];
+            System.out.println("\nGeneration " + (i + 1) + ":");
+            System.out.println("Fitness: " + tourFitness(best));
+            System.out.println("Tour: " + getTour(best));
+            // crossover 4 best performers
+            System.arraycopy(matingPool, 0, bestPerformers, 0, modifySize);
+            System.arraycopy(matingPool, 0, temp, 0, matingPoolSize - modifySize);
+            for (int j = 0; j < modifySize; j++) {
+                // choose the best performer randomly
+                int[] parent1 = bestPerformers[rand.nextInt(modifySize)];
+                int[] parent2 = bestPerformers[rand.nextInt(modifySize)];
+                temp[matingPoolSize - modifySize + j] = crossOver(parent1, parent2);
+            }
+            // swap temp and matingPool
+            int[][] temp2 = temp;
+            temp = matingPool;
+            matingPool = temp2;
+            Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
+        }
+        int[] result = matingPool[0];
+        System.out.println("\nFinal Fitness: " + tourFitness(result));
+        System.out.println("Final Tour: " + getTour(result));
     }
 
     public static void populateRandom(int[][] arr) {
@@ -38,68 +72,95 @@ public class Main {
         }
     }
 
-    public static int[] randomTour(int numCities) {
-        int[] result = new int[numCities];
-        // fill with random numbers
-        for (int i = 0; i < numCities; i++) {
-            result[i] = i;
-        }
-        // shuffle using fisher-yates
-        for (int i = numCities - 1; i > 0; i--) {
+    /**
+     * Fisher Yates random shuffling algorithm
+     * @param array input array that will be overwritten
+     */
+    public static void shuffle(int[] array) {
+        for (int i = array.length - 1; i > 0; i--) {
             // random number from 0 (inclusive) to i (exclusive)
             int randIndex = rand.nextInt(i);
             // swap current with item at randIndex
-            int temp = result[i];
-            result[i] = result[randIndex];
-            result[randIndex] = temp;
+            int temp = array[i];
+            array[i] = array[randIndex];
+            array[randIndex] = temp;
         }
+    }
+
+    public static int[] randomTour() {
+        int[] result = new int[numCities - 1];
+        // fill with random numbers
+        for (int i = 0; i < numCities - 1; i++) {
+            result[i] = i + 1;
+        }
+        // shuffle using fisher-yates
+        shuffle(result);
         return result;
     }
 
-    public static int tourFitness(int[][] distance, int[] tour) {
+    public static int tourFitness(int[] tour) {
         int fitness = 0;
+        fitness += distances[0][tour[0]];
         for (int i = 0; i < tour.length - 1; i++) {
             int cityA = tour[i];
             int cityB = tour[i + 1];
-            fitness += distance[cityA][cityB];
+            fitness += distances[cityA][cityB];
         }
         // add distance from last city to first city
-        fitness += distance[tour[tour.length - 1]][tour[0]];
+        fitness += distances[tour[tour.length - 1]][0];
         return fitness;
     }
 
-    public static int[][] KrandomTours(int numCities, int K) {
-        int[][] ret = new int[K][numCities];
-        HashSet<int[]> setOfRandomTours = new HashSet<>();
-        while (setOfRandomTours.size() < K) {
-            int[] newRandomTour = randomTour(numCities);
-            //check if newRandomTour is in setOfRandomTours
-            boolean newRandomTourInSet = false;
-            for (int[] randomTour : setOfRandomTours) {
-                if (Arrays.equals(newRandomTour, randomTour)) {
-                    newRandomTourInSet = true;
-                    break;
-                }
-            }
-            //if newRandomTour not in setOfRandomTours, add it
-            if (!newRandomTourInSet)
-                setOfRandomTours.add(newRandomTour);
-            System.out.println();
+    public static int[][] KrandomTours(int K) {
+        int[][] result = new int[K][numCities - 1];
+        for (int i = 0; i < K; i++) {
+            result[i] = randomTour();
         }
-        //transfer set to array
-        int ind = 0;
-        for (int[] tour : setOfRandomTours) {
-            ret[ind] = tour;
-            ind++;
-        }
-        return ret;
+        return result;
     }
     public static String getTour(int[] tour) {
-        String lookup = "XABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        StringBuilder result = new StringBuilder();
+        StringBuilder result = new StringBuilder("X");
         for (int i : tour) {
-            result.append(lookup.charAt(i));
+            result.append((char)(i - 1 + 'A'));
         }
+        result.append('X');
         return result.toString();
+    }
+
+    /**
+     * Implements a partially mapped crossover
+     * @param parent1 the first parent
+     * @param parent2 the second parent
+     * @return a new organism
+     */
+    public static int[] crossOver(int[] parent1, int[] parent2) {
+        int[] result = new int[numCities - 1];
+        int start = rand.nextInt(numCities - 1);
+        int end = rand.nextInt(start, numCities - 1);
+        boolean[] usedNumbers = new boolean[numCities];
+        for (int i = start; i <= end; i++) {
+            int num = parent1[i];
+            usedNumbers[num] = true;
+            result[i] = num;
+        }
+        // keep track of current index in parent 2
+        int idx = 0;
+        for (int i = 0; i < start; i++, idx++) {
+            while (usedNumbers[parent2[idx]]) idx++;
+            result[i] = parent2[idx];
+        }
+        for (int i = end + 1; i < numCities - 1; i++, idx++) {
+            while (usedNumbers[parent2[idx]]) idx++;
+            result[i] = parent2[idx];
+        }
+        // introduce some mutation
+        for (int i = 0; i < numMutations; i++) {
+            int idx1 = rand.nextInt(numCities - 1);
+            int idx2 = rand.nextInt(numCities - 1);
+            int temp = result[idx1];
+            result[idx1] = result[idx2];
+            result[idx2] = temp;
+        }
+        return result;
     }
 }
