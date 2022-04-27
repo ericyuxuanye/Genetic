@@ -67,7 +67,6 @@ public class Main {
             int sum = fitnessSum[survival];
             for (int j = 0; j < survival; j++) {
                 weights[j + 1] = weights[j] + sum - fitnessSum[j];
-
             }
 
             for (int j = 0; j < survival; j++) {
@@ -76,7 +75,7 @@ public class Main {
                 int[] parent2 = matingPool[rouletteSelect(weights)];
                 orderCrossover(parent1, parent2, matingPool[matingPoolSize - survival + j]);
                 // by chance, mutate
-                if (rand.nextDouble() < mutationProbability) mutate(matingPool[matingPoolSize - survival + j]);
+                if (rand.nextDouble() <= mutationProbability) mutate(matingPool[matingPoolSize - survival + j]);
             }
             Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
         }
