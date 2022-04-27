@@ -37,7 +37,7 @@ public class Visualizer extends JPanel {
         for (int i = 0; i < Main.numCities; i++) {
             Point p = cities[i];
             g.fillOval(p.x-6, p.y-6, 13, 13);
-            g.drawString(String.valueOf(lookup.charAt(i)), p.x + 10, p.y - 10);
+            g.drawString(String.valueOf(lookup.charAt(i)), p.x + 10, p.y + 10);
         }
 
         g.drawString("Fitness: " + Main.tourFitness(Main.getBest()), 2, height - 2);

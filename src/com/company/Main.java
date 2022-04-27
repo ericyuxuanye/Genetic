@@ -15,7 +15,7 @@ public class Main {
     /**
      * Probability of mutation
      */
-    public static final double mutationProbability = 0.6;
+    public static final double mutationProbability = 0.4;
 
     /**
      * Number that survives each round
