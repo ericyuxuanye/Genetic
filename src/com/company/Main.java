@@ -36,6 +36,12 @@ public class Main {
      */
     private final static int[] locations = new int[numCities];
 
+    private static int[][] matingPool;
+    private static final int[] fitnessSum = new int[survival + 1];
+    private static final int[] weights = new int[survival + 1];
+
+    public static int currentGen = 0;
+
     public static void main(String[] args) throws IOException {
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Main.class.getResourceAsStream("/Data.txt"))))) {
@@ -48,40 +54,33 @@ public class Main {
             }
         }
         //Pick random tours to make up mating pool
-        int[][] matingPool = KRandomTours(matingPoolSize);
-        // to store the fitness of the species as a prefix sum
-        int[] fitnessSum = new int[survival + 1];
-        int[] weights = new int[survival + 1];
+        matingPool = KRandomTours(matingPoolSize);
         Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
-        for (int i = 0; i < generations; i++) {
-            // print performance of generation
-            int[] best = matingPool[0];
-            System.out.println("\nGeneration " + i + ":");
-            System.out.println("Fitness: " + tourFitness(best));
-            System.out.println("Tour: " + getTour(best));
+    }
 
-            for (int j = 0; j < survival; j++) {
-                fitnessSum[j + 1] = fitnessSum[j] + tourFitness(matingPool[j]);
-            }
-
-            int sum = fitnessSum[survival];
-            for (int j = 0; j < survival; j++) {
-                weights[j + 1] = weights[j] + sum - fitnessSum[j];
-            }
-
-            for (int j = 0; j < survival; j++) {
-                // choose the best performer randomly
-                int[] parent1 = matingPool[rouletteSelect(weights)];
-                int[] parent2 = matingPool[rouletteSelect(weights)];
-                orderCrossover(parent1, parent2, matingPool[matingPoolSize - survival + j]);
-                // by chance, mutate
-                if (rand.nextDouble() <= mutationProbability) mutate(matingPool[matingPoolSize - survival + j]);
-            }
-            Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
+    public static void nextGen() {
+        currentGen++;
+        for (int j = 0; j < survival; j++) {
+            fitnessSum[j + 1] = fitnessSum[j] + tourFitness(matingPool[j]);
         }
-        int[] result = matingPool[0];
-        System.out.println("\nFinal Fitness: " + tourFitness(result));
-        System.out.println("Final Tour: " + getTour(result));
+        int sum = fitnessSum[survival];
+        for (int j = 0; j < survival; j++) {
+            weights[j + 1] = weights[j] + sum - fitnessSum[j];
+        }
+
+        for (int j = 0; j < survival; j++) {
+            // choose the best performer randomly
+            int[] parent1 = matingPool[rouletteSelect(weights)];
+            int[] parent2 = matingPool[rouletteSelect(weights)];
+            orderCrossover(parent1, parent2, matingPool[matingPoolSize - survival + j]);
+            // by chance, mutate
+            if (rand.nextDouble() <= mutationProbability) mutate(matingPool[matingPoolSize - survival + j]);
+        }
+        Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
+    }
+
+    public static int[] getBest() {
+        return matingPool[0];
     }
 
     public static int[][] KRandomTours(int K) {
