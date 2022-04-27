@@ -146,7 +146,7 @@ public class Main {
      */
     public static void orderCrossover(int[] parent1, int[] parent2, int[] offspring) {
         int start = rand.nextInt(numCities - 1);
-        int end = rand.nextInt(start, numCities - 1);
+        int end = rand.nextInt(numCities - 1 - start) + start;
         Arrays.fill(visited, false);
         for (int i = start; i <= end; i++) {
             int num = parent1[i];
@@ -242,7 +242,7 @@ public class Main {
      */
     public static void pmCrossover(int[] parent1, int[] parent2, int[] offspring) {
         int start = rand.nextInt(numCities - 1);
-        int end = rand.nextInt(start, numCities - 1);
+        int end = rand.nextInt(numCities - 1 - start) + start;
         Arrays.fill(visited, false);
         for (int i = start; i <= end; i++) {
             int num = parent1[i];
