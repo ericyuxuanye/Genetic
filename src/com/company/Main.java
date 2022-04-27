@@ -6,21 +6,31 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 public class Main {
-    static int numCities = 21;
-    static int matingPoolSize = 50;
-    static int generations = 1000;
-    static final Random rand = new Random();
-    static final int[][] distances = new int[numCities][numCities];
+    public static final int numCities = 21;
+    public static final int matingPoolSize = 120;
+    public static final int generations = 100;
+    public static final Random rand = new Random();
+    public static final int[][] distances = new int[numCities][numCities];
 
     /**
-     * number of mutations per copy
+     * Probability of mutation
      */
-    static final int numMutations = 2;
+    public static final double mutationProbability = 0.2;
 
     /**
-     * Number to delete and add each round
+     * Number that survives each round
      */
-    static final int modifySize = generations / 2;
+    public static final int survival = 60;
+
+    /**
+     * The number of organisms that compete in the tournament
+     */
+    public static final int numTournament = 7;
+
+    /**
+     * Used multiple times as the visited array
+     */
+    static final boolean[] visited = new boolean[numCities];
 
     public static void main(String[] args) throws IOException {
 
@@ -34,42 +44,28 @@ public class Main {
             }
         }
         //Pick random tours to make up mating pool
-        int[][] matingPool = KrandomTours(matingPoolSize);
-        int[][] temp = new int[matingPoolSize][numCities - 1];
-        int[][] bestPerformers = new int[modifySize][];
+        int[][] matingPool = KRandomTours(matingPoolSize);
         Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
         for (int i = 0; i < generations; i++) {
             // print performance of generation
             int[] best = matingPool[0];
-            System.out.println("\nGeneration " + (i + 1) + ":");
+            System.out.println("\nGeneration " + i + ":");
             System.out.println("Fitness: " + tourFitness(best));
             System.out.println("Tour: " + getTour(best));
-            // crossover 4 best performers
-            System.arraycopy(matingPool, 0, bestPerformers, 0, modifySize);
-            System.arraycopy(matingPool, 0, temp, 0, matingPoolSize - modifySize);
-            for (int j = 0; j < modifySize; j++) {
+
+            for (int j = 0; j < survival; j++) {
                 // choose the best performer randomly
-                int[] parent1 = bestPerformers[rand.nextInt(modifySize)];
-                int[] parent2 = bestPerformers[rand.nextInt(modifySize)];
-                temp[matingPoolSize - modifySize + j] = crossOver(parent1, parent2);
+                int[] parent1 = matingPool[tournamentSelect(matingPool)];
+                int[] parent2 = matingPool[tournamentSelect(matingPool)];
+                orderCrossover(parent1, parent2, matingPool[matingPoolSize - survival + j]);
+                // by chance, mutate
+                if (rand.nextDouble() < mutationProbability) mutate(matingPool[matingPoolSize - survival + j]);
             }
-            // swap temp and matingPool
-            int[][] temp2 = temp;
-            temp = matingPool;
-            matingPool = temp2;
             Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
         }
         int[] result = matingPool[0];
         System.out.println("\nFinal Fitness: " + tourFitness(result));
         System.out.println("Final Tour: " + getTour(result));
-    }
-
-    public static void populateRandom(int[][] arr) {
-        for (int i = 0; i < arr.length; i++) {
-            for (int j = 0; j < arr[0].length; j++) {
-                arr[i][j] = (int) (Math.random() * 10);
-            }
-        }
     }
 
     /**
@@ -78,13 +74,31 @@ public class Main {
      */
     public static void shuffle(int[] array) {
         for (int i = array.length - 1; i > 0; i--) {
-            // random number from 0 (inclusive) to i (exclusive)
-            int randIndex = rand.nextInt(i);
+            // random number from 0 (inclusive) to i (inclusive)
+            int randIndex = rand.nextInt(i + 1);
             // swap current with item at randIndex
             int temp = array[i];
             array[i] = array[randIndex];
             array[randIndex] = temp;
         }
+    }
+
+    /**
+     * Randomly selects a number of organisms (chosen by numTournament) and returns the best
+     * @param matingPool the mating pool
+     * @return the selected parent
+     */
+    public static int tournamentSelect(int[][] matingPool) {
+        int best = Integer.MAX_VALUE;
+        int result = -1;
+        for (int i = 0; i < numTournament; i++) {
+            int curr = tourFitness(matingPool[rand.nextInt(matingPoolSize)]);
+            if (curr < best) {
+                best = curr;
+                result = i;
+            }
+        }
+        return result;
     }
 
     public static int[] randomTour() {
@@ -111,7 +125,7 @@ public class Main {
         return fitness;
     }
 
-    public static int[][] KrandomTours(int K) {
+    public static int[][] KRandomTours(int K) {
         int[][] result = new int[K][numCities - 1];
         for (int i = 0; i < K; i++) {
             result[i] = randomTour();
@@ -131,36 +145,103 @@ public class Main {
      * Implements a partially mapped crossover
      * @param parent1 the first parent
      * @param parent2 the second parent
-     * @return a new organism
+     * @param offspring the baby to write to
      */
-    public static int[] crossOver(int[] parent1, int[] parent2) {
-        int[] result = new int[numCities - 1];
+    public static void pmCrossover(int[] parent1, int[] parent2, int[] offspring) {
         int start = rand.nextInt(numCities - 1);
         int end = rand.nextInt(start, numCities - 1);
-        boolean[] usedNumbers = new boolean[numCities];
+        Arrays.fill(visited, false);
         for (int i = start; i <= end; i++) {
             int num = parent1[i];
-            usedNumbers[num] = true;
-            result[i] = num;
+            visited[num] = true;
+            offspring[i] = num;
         }
         // keep track of current index in parent 2
         int idx = 0;
         for (int i = 0; i < start; i++, idx++) {
-            while (usedNumbers[parent2[idx]]) idx++;
-            result[i] = parent2[idx];
+            while (visited[parent2[idx]]) idx++;
+            offspring[i] = parent2[idx];
         }
         for (int i = end + 1; i < numCities - 1; i++, idx++) {
-            while (usedNumbers[parent2[idx]]) idx++;
-            result[i] = parent2[idx];
+            while (visited[parent2[idx]]) idx++;
+            offspring[i] = parent2[idx];
         }
+    }
+
+    /**
+     * Reverses a random section of the list
+     * @param offspring the offspring array to mutate
+     */
+    public static void mutate(int[] offspring) {
         // introduce some mutation
-        for (int i = 0; i < numMutations; i++) {
-            int idx1 = rand.nextInt(numCities - 1);
-            int idx2 = rand.nextInt(numCities - 1);
-            int temp = result[idx1];
-            result[idx1] = result[idx2];
-            result[idx2] = temp;
+        int start = rand.nextInt(numCities - 1);
+        int end = rand.nextInt(numCities - 1);
+        if (end < start) {
+            // swap
+            int temp = end;
+            end = start;
+            start = temp;
         }
-        return result;
+        for (int i = 0; i < (end - start) / 2 + 1; i++) {
+            int temp = offspring[i + start];
+            offspring[i + start] = offspring[end - i];
+            offspring[end - i] = temp;
+        }
+    }
+
+    /**
+     * Stores position of each city. Used in cycleCrossover
+     */
+    private final static int[] locations = new int[numCities];
+
+    /**
+     * Implements a cycle crossover. This one makes sure that every city maintains the position it had in one of the
+     * cities
+     * @param parent1 the first parent
+     * @param parent2 the second parent
+     * @param offspring the baby to write to
+     */
+    public static void cycleCrossover(int[] parent1, int[] parent2, int[] offspring) {
+        // store the location of each position for faster lookup later
+        for (int i = 0; i < numCities - 1; i++) {
+            locations[parent1[i]] = i;
+        }
+        Arrays.fill(visited, false);
+        int curr = 0;
+        do {
+            visited[curr] = true;
+            offspring[curr] = parent1[curr];
+            curr = locations[parent2[curr]];
+        } while (!visited[curr]);
+        for (int i = 0; i < numCities - 1; i++) {
+            if (!visited[i]) offspring[i] = parent2[i];
+        }
+    }
+
+    /**
+     * Implements the order crossover. This preserves the relative order of the remaining cities
+     * @param parent1 the first parent
+     * @param parent2 the second parent
+     * @param offspring the baby to write to
+     */
+    public static void orderCrossover(int[] parent1, int[] parent2, int[] offspring) {
+        int start = rand.nextInt(numCities - 1);
+        int end = rand.nextInt(start, numCities - 1);
+        Arrays.fill(visited, false);
+        for (int i = start; i <= end; i++) {
+            int num = parent1[i];
+            visited[num] = true;
+            offspring[i] = num;
+        }
+        // keep track of current index in parent 2
+        int idx = (end + 1) % (numCities - 1);
+        for (int i = end + 1; i < numCities - 1; i++, idx = (idx + 1) % (numCities - 1)) {
+            while (visited[parent2[idx]]) idx = (idx + 1) % (numCities - 1);
+            offspring[i] = parent2[idx];
+        }
+        for (int i = 0; i < start; i++, idx = (idx + 1) % (numCities - 1)) {
+            while (visited[parent2[idx]]) idx = (idx + 1) % (numCities - 1);
+            offspring[i] = parent2[idx];
+        }
     }
 }
