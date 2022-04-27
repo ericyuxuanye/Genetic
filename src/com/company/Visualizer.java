@@ -17,7 +17,7 @@ public class Visualizer extends JPanel {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Main.class.getResourceAsStream("/Points.txt"))))) {
             for (int i = 0; i < Main.numCities; i++) {
                 StringTokenizer st = new StringTokenizer(br.readLine());
-                cities[i] = new Point(Integer.parseInt(st.nextToken()), height - Integer.parseInt(st.nextToken()));
+                cities[i] = new Point(Integer.parseInt(st.nextToken()), Integer.parseInt(st.nextToken()));
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -39,8 +39,8 @@ public class Visualizer extends JPanel {
             g.fillOval(p.x-6, p.y-6, 13, 13);
             g.drawString(String.valueOf(lookup.charAt(i)), p.x + 10, p.y + 10);
         }
-        g.drawString("Generation: " + Main.getGeneration(), 2, height - 15);
-        g.drawString("Fitness: " + Main.tourFitness(Main.getBest()), 2, height - 2);
+        g.drawString("Generation: " + Main.getGeneration(), 2, 12);
+        g.drawString("Fitness: " + Main.tourFitness(Main.getBest()), 2, 25);
     }
 
     private void drawBestPath(Graphics g, int[] bestPath){
