@@ -15,7 +15,7 @@ public class Main {
     /**
      * Probability of mutation
      */
-    public static final double mutationProbability = 0.2;
+    public static final double mutationProbability = 0.3;
 
     /**
      * Number that survives each round
@@ -51,6 +51,7 @@ public class Main {
         int[][] matingPool = KRandomTours(matingPoolSize);
         // to store the fitness of the species as a prefix sum
         int[] fitnessSum = new int[survival + 1];
+        int[] weights = new int[survival + 1];
         Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
         for (int i = 0; i < generations; i++) {
             // print performance of generation
@@ -63,10 +64,16 @@ public class Main {
                 fitnessSum[j + 1] = fitnessSum[j] + tourFitness(matingPool[j]);
             }
 
+            int sum = fitnessSum[survival];
+            for (int j = 0; j < survival; j++) {
+                weights[j + 1] = weights[j] + sum - fitnessSum[j];
+
+            }
+
             for (int j = 0; j < survival; j++) {
                 // choose the best performer randomly
-                int[] parent1 = matingPool[rouletteSelect(fitnessSum)];
-                int[] parent2 = matingPool[rouletteSelect(fitnessSum)];
+                int[] parent1 = matingPool[rouletteSelect(weights)];
+                int[] parent2 = matingPool[rouletteSelect(weights)];
                 orderCrossover(parent1, parent2, matingPool[matingPoolSize - survival + j]);
                 // by chance, mutate
                 if (rand.nextDouble() < mutationProbability) mutate(matingPool[matingPoolSize - survival + j]);
