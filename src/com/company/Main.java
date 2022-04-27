@@ -45,6 +45,8 @@ public class Main {
         }
         //Pick random tours to make up mating pool
         int[][] matingPool = KRandomTours(matingPoolSize);
+        // to store the fitness of the species as a prefix sum
+        int[] fitnessSum = new int[survival + 1];
         Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
         for (int i = 0; i < generations; i++) {
             // print performance of generation
@@ -54,9 +56,13 @@ public class Main {
             System.out.println("Tour: " + getTour(best));
 
             for (int j = 0; j < survival; j++) {
+                fitnessSum[j+1] = fitnessSum[j] + tourFitness(matingPool[j]);
+            }
+
+            for (int j = 0; j < survival; j++) {
                 // choose the best performer randomly
-                int[] parent1 = matingPool[tournamentSelect(matingPool)];
-                int[] parent2 = matingPool[tournamentSelect(matingPool)];
+                int[] parent1 = matingPool[rouletteSelect(fitnessSum)];
+                int[] parent2 = matingPool[rouletteSelect(fitnessSum)];
                 orderCrossover(parent1, parent2, matingPool[matingPoolSize - survival + j]);
                 // by chance, mutate
                 if (rand.nextDouble() < mutationProbability) mutate(matingPool[matingPoolSize - survival + j]);
@@ -99,6 +105,28 @@ public class Main {
             }
         }
         return result;
+    }
+
+    /**
+     * Selects using the roulette method, where organisms with lower fitness values are more likely to be selected
+     * @param fitnessSum the sum of the fitness values
+     * @return the chosen one
+     */
+    public static int rouletteSelect(int[] fitnessSum) {
+        int sum = fitnessSum[survival];
+        int chosen = rand.nextInt(sum + 1);
+        // binary search
+        int high = survival - 1;
+        int low = 0;
+        while (low < high) {
+            int mid = (low + high + 1) / 2;
+            if (chosen >= fitnessSum[mid]) {
+                low = mid;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return low;
     }
 
     public static int[] randomTour() {
