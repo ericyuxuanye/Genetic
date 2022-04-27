@@ -36,14 +36,13 @@ public class Main {
      */
     private final static int[] locations = new int[numCities];
 
-    private static int[][] matingPool;
+    private static final int[][] matingPool;
     private static final int[] fitnessSum = new int[survival + 1];
     private static final int[] weights = new int[survival + 1];
 
     public static int currentGen = 0;
 
-    public static void main(String[] args) throws IOException {
-
+    static {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Main.class.getResourceAsStream("/Data.txt"))))) {
             for (int i = 0; i < numCities; i++) {
                 String line = br.readLine();
@@ -52,6 +51,9 @@ public class Main {
                     distances[i][j] = Integer.parseInt(st.nextToken());
                 }
             }
+        } catch (IOException e) {
+            e.getStackTrace();
+            System.exit(1);
         }
         //Pick random tours to make up mating pool
         matingPool = KRandomTours(matingPoolSize);
