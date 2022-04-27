@@ -117,18 +117,18 @@ public class Main {
     /**
      * Selects using the roulette method, where organisms with lower fitness values are more likely to be selected
      *
-     * @param fitnessSum the sum of the fitness values
+     * @param weights weights for each organism
      * @return the chosen one
      */
-    public static int rouletteSelect(int[] fitnessSum) {
-        int sum = fitnessSum[survival];
+    public static int rouletteSelect(int[] weights) {
+        int sum = weights[survival];
         int chosen = rand.nextInt(sum + 1);
         // binary search
         int high = survival - 1;
         int low = 0;
         while (low < high) {
             int mid = (low + high + 1) / 2;
-            if (chosen >= fitnessSum[mid]) {
+            if (chosen >= weights[mid]) {
                 low = mid;
             } else {
                 high = mid - 1;
