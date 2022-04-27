@@ -1,5 +1,6 @@
 package com.company;
 
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -7,20 +8,19 @@ import java.util.*;
 
 public class Main {
     public static final int numCities = 21;
-    public static final int matingPoolSize = 120;
-    public static final int generations = 100;
+    public static final int matingPoolSize = 1000;
     public static final Random rand = new Random();
     public static final int[][] distances = new int[numCities][numCities];
 
     /**
      * Probability of mutation
      */
-    public static final double mutationProbability = 0.3;
+    public static final double mutationProbability = 0.6;
 
     /**
      * Number that survives each round
      */
-    public static final int survival = 60;
+    public static final int survival = 400;
 
     /**
      * The number of organisms that compete in the tournament
@@ -79,6 +79,7 @@ public class Main {
             if (rand.nextDouble() <= mutationProbability) mutate(matingPool[matingPoolSize - survival + j]);
         }
         Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
+
     }
 
     public static int[] getBest() {

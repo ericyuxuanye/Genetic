@@ -29,13 +29,22 @@ public class Visualizer extends JPanel {
     protected void paintComponent(Graphics g){
         super.paintComponent(g);
         ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        for(Point p : cities){
+
+        drawBestPath(g, Main.getBest());
+
+        g.setColor(Color.BLACK);
+        String lookup = "XABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        for (int i = 0; i < Main.numCities; i++) {
+            Point p = cities[i];
             g.fillOval(p.x-6, p.y-6, 13, 13);
+            g.drawString(String.valueOf(lookup.charAt(i)), p.x + 10, p.y - 10);
         }
-        drawBestPath(g,new int[]{20, 5, 10, 9, 17, 12, 3, 15, 2, 18, 6, 11, 8 ,13 ,1, 7, 19, 4, 14, 16} );
+
+        g.drawString("Fitness: " + Main.tourFitness(Main.getBest()), 2, height - 2);
     }
 
     private void drawBestPath(Graphics g, int[] bestPath){
+        g.setColor(Color.RED);
         Point prev = cities[0];
         Point current = cities[bestPath[0]];
         g.drawLine(prev.x, prev.y, current.x, current.y);
