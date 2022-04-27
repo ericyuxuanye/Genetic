@@ -39,7 +39,7 @@ public class Visualizer extends JPanel {
             g.fillOval(p.x-6, p.y-6, 13, 13);
             g.drawString(String.valueOf(lookup.charAt(i)), p.x + 10, p.y + 10);
         }
-
+        g.drawString("Generation: " + Main.getGeneration(), 2, height - 15);
         g.drawString("Fitness: " + Main.tourFitness(Main.getBest()), 2, height - 2);
     }
 

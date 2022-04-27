@@ -30,7 +30,7 @@ public class Main {
     /**
      * Used multiple times as the visited array
      */
-    static final boolean[] visited = new boolean[numCities];
+    private static final boolean[] visited = new boolean[numCities];
     /**
      * Stores position of each city. Used in cycleCrossover
      */
@@ -40,7 +40,7 @@ public class Main {
     private static final int[] fitnessSum = new int[survival + 1];
     private static final int[] weights = new int[survival + 1];
 
-    public static int currentGen = 0;
+    private static int currentGen = 0;
 
     static {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Main.class.getResourceAsStream("/Data.txt"))))) {
@@ -80,6 +80,10 @@ public class Main {
         }
         Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
 
+    }
+
+    public static int getGeneration() {
+        return currentGen;
     }
 
     public static int[] getBest() {
