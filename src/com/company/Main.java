@@ -8,19 +8,19 @@ import java.util.*;
 
 public class Main {
     public static final int numCities = 21;
-    public static final int matingPoolSize = 1000;
+    public static final int matingPoolSize = 2000;
     public static final Random rand = new Random();
     public static final int[][] distances = new int[numCities][numCities];
 
     /**
      * Probability of mutation
      */
-    public static final double mutationProbability = 0.4;
+    public static final double mutationProbability = 0.3;
 
     /**
      * Number that survives each round
      */
-    public static final int survival = 400;
+    public static final int survival = 800;
 
     /**
      * The number of organisms that compete in the tournament
