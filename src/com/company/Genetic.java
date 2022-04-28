@@ -7,8 +7,10 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 public class Genetic {
-    public static final int numCities = 50;
+    public static final int numCities = 51;
+    public static final boolean isCaseStudy = false;
     public static final int matingPoolSize = 2000;
+
     public static final Random rand = new Random();
     public static final Point[] cities = new Point[numCities];
     public static final int[][] distances = new int[numCities][numCities];
@@ -47,8 +49,18 @@ public class Genetic {
     private static int currentGen = 0;
 
     static {
-        randomCities();
-        calculateDistances();
+        if (isCaseStudy) {
+            if (numCities != 21) {
+                // Sure, we could reset numCities, but I would like to keep it as
+                // a final variable
+                System.err.println("numCities has to be 21 if using case study cities");
+                System.exit(1);
+            }
+            caseStudyCities();
+        } else {
+            randomCities();
+            calculateDistances();
+        }
 
         //Pick random tours to make up mating pool
         matingPool = KRandomTours(matingPoolSize);
@@ -320,6 +332,33 @@ public class Genetic {
                 Point p2 = cities[j];
                 distances[i][j] = (int) Math.sqrt(Math.pow(p1.x-p2.x, 2) + Math.pow(p1.y-p2.y, 2));
             }
+        }
+    }
+
+    public static void caseStudyCities() {
+        // read in cities
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Genetic.class.getResourceAsStream("/Points.txt"))))) {
+            for (int i = 0; i < numCities; i++) {
+                StringTokenizer st = new StringTokenizer(br.readLine());
+                int x = Integer.parseInt(st.nextToken()) * width / 490;
+                int y = Integer.parseInt(st.nextToken()) * height / 334;
+                cities[i] = new Point(x, y);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        // read in distances
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Genetic.class.getResourceAsStream("/Data.txt"))))) {
+            for (int i = 0; i < numCities; i++) {
+                StringTokenizer st = new StringTokenizer(br.readLine());
+                for (int j = 0; j < numCities; j++) {
+                    distances[i][j] = Integer.parseInt(st.nextToken());
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 }

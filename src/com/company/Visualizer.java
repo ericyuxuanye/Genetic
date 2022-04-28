@@ -2,15 +2,13 @@ package com.company;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.*;
 
 public class Visualizer extends JPanel {
 
     private static final int width = Genetic.width;
     private static final int height = Genetic.height;
+
+    private static final String caseStudyLettering = "XABCDEFGHIJKLMNOPQRST";
     private final Point[] cities = Genetic.cities;
 
     public Visualizer() {
@@ -29,7 +27,11 @@ public class Visualizer extends JPanel {
         for (int i = 0; i < Genetic.numCities; i++) {
             Point p = cities[i];
             g.fillOval(p.x-6, p.y-6, 13, 13);
-            g.drawString(numToLetters(i), p.x + 10, p.y + 10);
+            if (Genetic.isCaseStudy) {
+                g.drawString(String.valueOf(caseStudyLettering.charAt(i)), p.x + 10, p.y + 10);
+            } else {
+                g.drawString(numToLetters(i), p.x + 10, p.y + 10);
+            }
         }
         g.drawString("Generation: " + Genetic.getGeneration(), 2, 12);
         g.drawString("Fitness: " + Genetic.tourFitness(Genetic.getBest()), 2, 25);
@@ -51,14 +53,12 @@ public class Visualizer extends JPanel {
 
     public static String numToLetters(int num){
         StringBuilder sb = new StringBuilder();
-        int remainder = num % 26;
         char letter = (char)((num % 26) + 'A');
         sb.append(letter);
         num /= 26;
 
         while(num > 0){
             num--;
-            remainder = num % 26;
             letter = (char)((num % 26) + 'A');
             sb.append(letter);
             num /= 26;
