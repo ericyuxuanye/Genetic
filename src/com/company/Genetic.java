@@ -330,7 +330,9 @@ public class Genetic {
             Point p1 = cities[i];
             for (int j = 0; j < numCities; j++) {
                 Point p2 = cities[j];
-                distances[i][j] = (int) Math.sqrt(Math.pow(p1.x-p2.x, 2) + Math.pow(p1.y-p2.y, 2));
+                int x = p2.x - p1.x;
+                int y = p2.y - p1.y;
+                distances[i][j] = (int)Math.round(Math.sqrt(x * x + y * y));
             }
         }
     }
