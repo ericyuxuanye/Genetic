@@ -1,16 +1,23 @@
 package com.company;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
 
 public class Main {
-    public static final int numCities = 21;
+    public static final int numCities = 24;
+    public static final int width = 500;
+    public static final int height = 500;
+
+    public static final Point[] cities = new Point[numCities];
+    public static final int[][] distances = new int[numCities][numCities];
+
     public static final int matingPoolSize = 2000;
     public static final Random rand = new Random();
-    public static final int[][] distances = new int[numCities][numCities];
+
 
     /**
      * Probability of mutation
@@ -36,28 +43,22 @@ public class Main {
      */
     private final static int[] locations = new int[numCities];
 
-    private static final int[][] matingPool;
+    private static int[][] matingPool;
     private static final int[] fitnessSum = new int[survival + 1];
     private static final int[] weights = new int[survival + 1];
 
     public static int currentGen = 0;
 
-    static {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Main.class.getResourceAsStream("/Data.txt"))))) {
-            for (int i = 0; i < numCities; i++) {
-                String line = br.readLine();
-                StringTokenizer st = new StringTokenizer(line);
-                for (int j = 0; j < numCities; j++) {
-                    distances[i][j] = Integer.parseInt(st.nextToken());
-                }
-            }
-        } catch (IOException e) {
-            e.getStackTrace();
-            System.exit(1);
-        }
+    public static void main(String[] args) {
+
+        randomCities();
+        calculateDistances();
+
         //Pick random tours to make up mating pool
         matingPool = KRandomTours(matingPoolSize);
         Arrays.sort(matingPool, Comparator.comparingInt(Main::tourFitness));
+
+        VisBuilder.build();
     }
 
     public static void nextGen() {
@@ -285,6 +286,23 @@ public class Main {
         } while (!visited[curr]);
         for (int i = 0; i < numCities - 1; i++) {
             if (!visited[i]) offspring[i] = parent2[i];
+        }
+    }
+
+    public static void randomCities(){
+        Random rand = new Random();
+        for (int i = 0; i < numCities; i++) {
+            cities[i] = new Point(rand.nextInt(width - 40) + 20, rand.nextInt(height - 40) + 20);
+        }
+    }
+
+    public static void calculateDistances(){
+        for (int i = 0; i < numCities; i++) {
+            Point p1 = cities[i];
+            for (int j = 0; j < numCities; j++) {
+                Point p2 = cities[j];
+                distances[i][j] = (int) Math.sqrt(Math.pow(p1.x-p2.x, 2) + Math.pow(p1.y-p2.y, 2));
+            }
         }
     }
 }

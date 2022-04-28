@@ -2,9 +2,9 @@ package com.company;
 
 import javax.swing.*;
 
-public class FrameBuilder {
+public class VisBuilder {
 
-    public static void main(String args[]){
+    public static void build(){
         JFrame frame = new JFrame();
         frame.setContentPane(new Visualizer());
         frame.pack();

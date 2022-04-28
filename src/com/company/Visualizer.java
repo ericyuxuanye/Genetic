@@ -2,26 +2,15 @@ package com.company;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.*;
 
 public class Visualizer extends JPanel {
 
-    private int width = 490;
-    private int height = 334;
-    private Point[] cities = new Point[Main.numCities];
+    private int width = Main.width;
+    private int height = Main.height;
+    private Point[] cities;
 
     public Visualizer() {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Main.class.getResourceAsStream("/Points.txt"))))) {
-            for (int i = 0; i < Main.numCities; i++) {
-                StringTokenizer st = new StringTokenizer(br.readLine());
-                cities[i] = new Point(Integer.parseInt(st.nextToken()), height - Integer.parseInt(st.nextToken()));
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        cities = Main.cities;
         setPreferredSize(new Dimension(width, height));
     }
 
@@ -40,7 +29,8 @@ public class Visualizer extends JPanel {
             g.drawString(String.valueOf(lookup.charAt(i)), p.x + 10, p.y + 10);
         }
 
-        g.drawString("Fitness: " + Main.tourFitness(Main.getBest()), 2, height - 2);
+        g.drawString("Best Fitness: " + Main.tourFitness(Main.getBest()), 2, height - 2);
+        g.drawString("Generation: " + Main.currentGen, 2, height - 14);
     }
 
     private void drawBestPath(Graphics g, int[] bestPath){
