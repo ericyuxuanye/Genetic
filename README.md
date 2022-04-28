@@ -2,4 +2,4 @@
 
 Does the case study paper 3 thing
 
-![Demo](https://user-images.githubusercontent.com/84354151/165694151-cfcab819-ad05-444f-9718-27e019be9fd2.gif)
+![Demo](https://user-images.githubusercontent.com/84354151/165695582-75a75b0e-ce92-454b-bc3e-3cc3a050b47b.gif)
