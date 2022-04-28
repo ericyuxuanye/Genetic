@@ -23,7 +23,7 @@ public class DPApproach {
 
     public static void main(String[] args) throws IOException {
         // read in input
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Main.class.getResourceAsStream("/Data.txt"))))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Genetic.class.getResourceAsStream("/Data.txt"))))) {
             for (int i = 0; i < numCities; i++) {
                 String line = br.readLine();
                 StringTokenizer st = new StringTokenizer(line);
