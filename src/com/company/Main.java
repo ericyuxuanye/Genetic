@@ -8,7 +8,7 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 public class Main {
-    public static final int numCities = 24;
+    public static final int numCities = 50;
     public static final int width = 500;
     public static final int height = 500;
 

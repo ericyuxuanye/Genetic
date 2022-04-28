@@ -22,11 +22,11 @@ public class Visualizer extends JPanel {
         drawBestPath(g, Main.getBest());
 
         g.setColor(Color.BLACK);
-        String lookup = "XABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lookup = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         for (int i = 0; i < Main.numCities; i++) {
             Point p = cities[i];
             g.fillOval(p.x-6, p.y-6, 13, 13);
-            g.drawString(String.valueOf(lookup.charAt(i)), p.x + 10, p.y + 10);
+            g.drawString(String.valueOf(lookup.charAt(i%26)), p.x + 10, p.y + 10);
         }
 
         g.drawString("Best Fitness: " + Main.tourFitness(Main.getBest()), 2, height - 2);
