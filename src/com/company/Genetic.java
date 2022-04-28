@@ -1,15 +1,20 @@
 package com.company;
 
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
 
 public class Genetic {
-    public static final int numCities = 21;
+    public static final int numCities = 50;
     public static final int matingPoolSize = 2000;
     public static final Random rand = new Random();
+    public static final Point[] cities = new Point[numCities];
     public static final int[][] distances = new int[numCities][numCities];
+
+    public static final int width = 1600;
+    public static final int height = 900;
 
     /**
      * Probability of mutation
@@ -42,18 +47,9 @@ public class Genetic {
     private static int currentGen = 0;
 
     static {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Genetic.class.getResourceAsStream("/Data.txt"))))) {
-            for (int i = 0; i < numCities; i++) {
-                String line = br.readLine();
-                StringTokenizer st = new StringTokenizer(line);
-                for (int j = 0; j < numCities; j++) {
-                    distances[i][j] = Integer.parseInt(st.nextToken());
-                }
-            }
-        } catch (IOException e) {
-            e.getStackTrace();
-            System.exit(1);
-        }
+        randomCities();
+        calculateDistances();
+
         //Pick random tours to make up mating pool
         matingPool = KRandomTours(matingPoolSize);
         Arrays.sort(matingPool, Comparator.comparingInt(Genetic::tourFitness));
@@ -307,6 +303,23 @@ public class Genetic {
         } while (!visited[curr]);
         for (int i = 0; i < numCities; i++) {
             if (!visited[i]) offspring[i] = parent2[i];
+        }
+    }
+
+    public static void randomCities(){
+        Random rand = new Random();
+        for (int i = 0; i < numCities; i++) {
+            cities[i] = new Point(rand.nextInt(width - 40) + 20, rand.nextInt(height - 40) + 20);
+        }
+    }
+
+    public static void calculateDistances(){
+        for (int i = 0; i < numCities; i++) {
+            Point p1 = cities[i];
+            for (int j = 0; j < numCities; j++) {
+                Point p2 = cities[j];
+                distances[i][j] = (int) Math.sqrt(Math.pow(p1.x-p2.x, 2) + Math.pow(p1.y-p2.y, 2));
+            }
         }
     }
 }

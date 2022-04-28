@@ -9,19 +9,12 @@ import java.util.*;
 
 public class Visualizer extends JPanel {
 
-    private static final int width = 490;
-    private static final int height = 334;
-    private final Point[] cities = new Point[Genetic.numCities];
+    private static final int width = Genetic.width;
+    private static final int height = Genetic.height;
+    private final Point[] cities = Genetic.cities;
 
     public Visualizer() {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Genetic.class.getResourceAsStream("/Points.txt"))))) {
-            for (int i = 0; i < Genetic.numCities; i++) {
-                StringTokenizer st = new StringTokenizer(br.readLine());
-                cities[i] = new Point(Integer.parseInt(st.nextToken()), Integer.parseInt(st.nextToken()));
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+
         setPreferredSize(new Dimension(width, height));
     }
 
@@ -33,11 +26,10 @@ public class Visualizer extends JPanel {
         drawBestPath(g, Genetic.getBest());
 
         g.setColor(Color.BLACK);
-        String lookup = "XABCDEFGHIJKLMNOPQRSTUVWXYZ";
         for (int i = 0; i < Genetic.numCities; i++) {
             Point p = cities[i];
             g.fillOval(p.x-6, p.y-6, 13, 13);
-            g.drawString(String.valueOf(lookup.charAt(i)), p.x + 10, p.y + 10);
+            g.drawString(numToLetters(i), p.x + 10, p.y + 10);
         }
         g.drawString("Generation: " + Genetic.getGeneration(), 2, 12);
         g.drawString("Fitness: " + Genetic.tourFitness(Genetic.getBest()), 2, 25);
@@ -56,6 +48,25 @@ public class Visualizer extends JPanel {
         g.drawLine(last.x, last.y, first.x, first.y);
     }
 
+
+    public static String numToLetters(int num){
+        StringBuilder sb = new StringBuilder();
+        int remainder = num % 26;
+        char letter = (char)((num % 26) + 'A');
+        sb.append(letter);
+        num /= 26;
+
+        while(num > 0){
+            num--;
+            remainder = num % 26;
+            letter = (char)((num % 26) + 'A');
+            sb.append(letter);
+            num /= 26;
+        }
+
+        sb.reverse();
+        return sb.toString();
+    }
 
 
 }
