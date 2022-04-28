@@ -24,15 +24,20 @@ public class Visualizer extends JPanel {
         drawBestPath(g, Genetic.getBest());
 
         g.setColor(Color.BLACK);
+        for (Point p : cities) {
+            g.fillOval(p.x-6, p.y-6, 13, 13);
+        }
+        // draw text on top of points
+        g.setColor(Color.GRAY);
         for (int i = 0; i < Genetic.numCities; i++) {
             Point p = cities[i];
-            g.fillOval(p.x-6, p.y-6, 13, 13);
             if (Genetic.isCaseStudy) {
-                g.drawString(String.valueOf(caseStudyLettering.charAt(i)), p.x + 10, p.y + 10);
+                g.drawString(String.valueOf(caseStudyLettering.charAt(i)), p.x, p.y - 10);
             } else {
-                g.drawString(numToLetters(i), p.x + 10, p.y + 10);
+                g.drawString(numToLetters(i), p.x, p.y - 10);
             }
         }
+        g.setColor(Color.BLACK);
         g.drawString("Generation: " + Genetic.getGeneration(), 2, 12);
         g.drawString("Fitness: " + Genetic.tourFitness(Genetic.getBest()), 2, 25);
     }
