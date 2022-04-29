@@ -12,7 +12,7 @@ public class Visualizer extends JPanel {
     private final Point[] cities = Genetic.cities;
 
     public Visualizer() {
-
+        super();
         setPreferredSize(new Dimension(width, height));
     }
 
