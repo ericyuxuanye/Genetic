@@ -7,7 +7,7 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 public class Genetic {
-    public static final int numCities = 51;
+    public static final int numCities = 100;
     public static final boolean isCaseStudy = false;
     public static final int matingPoolSize = 2000;
 
@@ -42,7 +42,11 @@ public class Genetic {
      */
     private final static int[] locations = new int[numCities];
 
-    private static final int[][] matingPool;
+    private static class Organism {
+        int[] path;
+        int fitness;
+    }
+    private static final Organism[] matingPool;
     private static final int[] fitnessSum = new int[survival + 1];
     private static final long[] weights = new long[survival + 1];
 
@@ -64,13 +68,13 @@ public class Genetic {
 
         //Pick random tours to make up mating pool
         matingPool = KRandomTours(matingPoolSize);
-        Arrays.sort(matingPool, Comparator.comparingInt(Genetic::tourFitness));
+        Arrays.sort(matingPool, Comparator.comparingInt(x -> x.fitness));
     }
 
     public static void nextGen() {
         currentGen++;
         for (int j = 0; j < survival; j++) {
-            fitnessSum[j + 1] = fitnessSum[j] + tourFitness(matingPool[j]);
+            fitnessSum[j + 1] = fitnessSum[j] + matingPool[j].fitness;
         }
         int sum = fitnessSum[survival];
         for (int j = 0; j < survival; j++) {
@@ -79,13 +83,14 @@ public class Genetic {
 
         for (int j = 0; j < matingPoolSize - survival; j++) {
             // choose the best performer randomly
-            int[] parent1 = matingPool[rouletteSelect(weights)];
-            int[] parent2 = matingPool[rouletteSelect(weights)];
-            orderCrossover(parent1, parent2, matingPool[survival + j]);
+            int[] parent1 = matingPool[rouletteSelect(weights)].path;
+            int[] parent2 = matingPool[rouletteSelect(weights)].path;
+            orderCrossover(parent1, parent2, matingPool[survival + j].path);
             // by chance, mutate
-            if (rand.nextDouble() <= mutationProbability) mutate(matingPool[survival + j]);
+            if (rand.nextDouble() <= mutationProbability) mutate(matingPool[survival + j].path);
+            matingPool[survival + j].fitness = tourFitness(matingPool[survival + j].path);
         }
-        Arrays.sort(matingPool, Comparator.comparingInt(Genetic::tourFitness));
+        Arrays.sort(matingPool, Comparator.comparingInt(o -> o.fitness));
 
     }
 
@@ -94,15 +99,22 @@ public class Genetic {
     }
 
     public static int[] getBest() {
-        return matingPool[0];
+        return matingPool[0].path;
     }
 
-    public static int[][] KRandomTours(int K) {
+    public static Organism[] KRandomTours(int K) {
         int[][] result = new int[K][];
         for (int i = 0; i < K; i++) {
             result[i] = randomTour();
         }
-        return result;
+        Organism[] organisms = new Organism[K];
+        for (int i = 0; i < K; i++) {
+            Organism o = new Organism();
+            o.path = result[i];
+            o.fitness = tourFitness(o.path);
+            organisms[i] = o;
+        }
+        return organisms;
     }
 
     public static int tourFitness(int[] tour) {

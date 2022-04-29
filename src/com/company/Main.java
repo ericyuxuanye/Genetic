@@ -11,12 +11,15 @@ public class Main {
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setVisible(true);
 
-        Timer t = new Timer(100, e -> {
-            Genetic.nextGen();
+        Timer t = new Timer(500, e -> {
+
             frame.repaint();
         });
 
         t.start();
+        while (true) {
+            Genetic.nextGen();
+        }
 
 
     }
