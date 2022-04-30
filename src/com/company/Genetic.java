@@ -5,9 +5,13 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.IntConsumer;
 
 public class Genetic {
-    public static final int numCities = 100;
+    public static final int numCities = 700;
     public static final boolean isCaseStudy = false;
     public static final int matingPoolSize = 2000;
 
@@ -34,10 +38,6 @@ public class Genetic {
     public static final int numTournament = 7;
 
     /**
-     * Used multiple times as the visited array
-     */
-    private static final boolean[] visited = new boolean[numCities];
-    /**
      * Stores position of each city. Used in cycleCrossover
      */
     private final static int[] locations = new int[numCities];
@@ -51,6 +51,10 @@ public class Genetic {
     private static final long[] weights = new long[survival + 1];
 
     private static int currentGen = 0;
+
+    private static final int NUM_CORES = Runtime.getRuntime().availableProcessors();
+
+    private static final ExecutorService exc = Executors.newFixedThreadPool(NUM_CORES);
 
     static {
         if (isCaseStudy) {
@@ -80,8 +84,7 @@ public class Genetic {
         for (int j = 0; j < survival; j++) {
             weights[j + 1] = weights[j] + sum - fitnessSum[j];
         }
-
-        for (int j = 0; j < matingPoolSize - survival; j++) {
+        divideTasks((j) -> {
             // choose the best performer randomly
             int[] parent1 = matingPool[rouletteSelect(weights)].path;
             int[] parent2 = matingPool[rouletteSelect(weights)].path;
@@ -89,9 +92,44 @@ public class Genetic {
             // by chance, mutate
             if (rand.nextDouble() <= mutationProbability) mutate(matingPool[survival + j].path);
             matingPool[survival + j].fitness = tourFitness(matingPool[survival + j].path);
-        }
-        Arrays.sort(matingPool, Comparator.comparingInt(o -> o.fitness));
+        }, matingPoolSize - survival);
+        Arrays.parallelSort(matingPool, Comparator.comparingInt(o -> o.fitness));
 
+    }
+
+    /**
+     * Runs a task in parallel with arguments from 0 to bound - 1
+     * @param f runs some task, accepting an index
+     * @param bound number of times to loop
+     */
+    public static void divideTasks(IntConsumer f, int bound) {
+        CountDownLatch latch = new CountDownLatch(NUM_CORES);
+        final int taskSize = bound / NUM_CORES;
+        final int lastTaskSize = taskSize + bound - taskSize * NUM_CORES;
+        // all but last core
+        for (int i = 0; i < NUM_CORES - 1; i++) {
+            int finalI = i;
+            exc.execute(() -> {
+                int start = finalI * taskSize;
+                for (int j = start; j < start + taskSize; j++) {
+                    f.accept(j);
+                }
+                latch.countDown();
+            });
+        }
+        // last core
+        exc.execute(() -> {
+            for (int j = bound - lastTaskSize; j < bound; j++) {
+                f.accept(j);
+            }
+            latch.countDown();
+        });
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     public static int getGeneration() {
@@ -103,14 +141,10 @@ public class Genetic {
     }
 
     public static Organism[] KRandomTours(int K) {
-        int[][] result = new int[K][];
-        for (int i = 0; i < K; i++) {
-            result[i] = randomTour();
-        }
         Organism[] organisms = new Organism[K];
         for (int i = 0; i < K; i++) {
             Organism o = new Organism();
-            o.path = result[i];
+            o.path = randomTour();
             o.fitness = tourFitness(o.path);
             organisms[i] = o;
         }
@@ -185,7 +219,7 @@ public class Genetic {
             end = start;
             start = temp;
         }
-        Arrays.fill(visited, false);
+        boolean[] visited = new boolean[numCities];
         for (int i = start; i <= end; i++) {
             int num = parent1[i];
             visited[num] = true;
@@ -287,7 +321,7 @@ public class Genetic {
             end = start;
             start = temp;
         }
-        Arrays.fill(visited, false);
+        boolean[] visited = new boolean[numCities];
         for (int i = start; i <= end; i++) {
             int num = parent1[i];
             visited[num] = true;
@@ -318,7 +352,7 @@ public class Genetic {
         for (int i = 0; i < numCities; i++) {
             locations[parent1[i]] = i;
         }
-        Arrays.fill(visited, false);
+        boolean[] visited = new boolean[numCities];
         int curr = 0;
         do {
             visited[curr] = true;
