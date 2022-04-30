@@ -8,10 +8,9 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.IntConsumer;
 
 public class Genetic {
-    public static final int numCities = 700;
+    public static final int numCities = 800;
     public static final boolean isCaseStudy = false;
     public static final int matingPoolSize = 2000;
 
@@ -21,6 +20,14 @@ public class Genetic {
 
     public static final int width = 1600;
     public static final int height = 900;
+
+
+    private static final int NUM_CORES = Runtime.getRuntime().availableProcessors();
+
+    /**
+     * Our thread pool that provides as many threads as there are cpu cores
+     */
+    private static final ExecutorService exc = Executors.newFixedThreadPool(NUM_CORES);
 
     /**
      * Probability of mutation
@@ -40,21 +47,19 @@ public class Genetic {
     /**
      * Stores position of each city. Used in cycleCrossover
      */
-    private final static int[] locations = new int[numCities];
+    private static final int[][] locations = new int[NUM_CORES][numCities];
+    private static final boolean[][] visited = new boolean[NUM_CORES][numCities];
 
     private static class Organism {
         int[] path;
         int fitness;
     }
-    private static final Organism[] matingPool;
+    private static Organism[] matingPool;
     private static final int[] fitnessSum = new int[survival + 1];
     private static final long[] weights = new long[survival + 1];
 
     private static int currentGen = 0;
 
-    private static final int NUM_CORES = Runtime.getRuntime().availableProcessors();
-
-    private static final ExecutorService exc = Executors.newFixedThreadPool(NUM_CORES);
 
     static {
         if (isCaseStudy) {
@@ -77,59 +82,110 @@ public class Genetic {
 
     public static void nextGen() {
         currentGen++;
+        //int maxFitness = 0;
         for (int j = 0; j < survival; j++) {
+            //maxFitness = Math.max(maxFitness, matingPool[j].fitness);
             fitnessSum[j + 1] = fitnessSum[j] + matingPool[j].fitness;
         }
         int sum = fitnessSum[survival];
         for (int j = 0; j < survival; j++) {
             weights[j + 1] = weights[j] + sum - fitnessSum[j];
         }
-        divideTasks((j) -> {
+        divideTasks((j, core) -> {
             // choose the best performer randomly
             int[] parent1 = matingPool[rouletteSelect(weights)].path;
             int[] parent2 = matingPool[rouletteSelect(weights)].path;
-            orderCrossover(parent1, parent2, matingPool[survival + j].path);
+            orderCrossover(parent1, parent2, matingPool[survival + j].path, core);
             // by chance, mutate
             if (rand.nextDouble() <= mutationProbability) mutate(matingPool[survival + j].path);
             matingPool[survival + j].fitness = tourFitness(matingPool[survival + j].path);
         }, matingPoolSize - survival);
-        Arrays.parallelSort(matingPool, Comparator.comparingInt(o -> o.fitness));
+        Arrays.sort(matingPool, Comparator.comparingInt(o -> o.fitness));
+        // radix sort would be faster if we had many more elements
+        // radixSort(maxFitness);
+    }
 
+    public interface IntBinaryConsumer {
+        void accept(int a, int b);
     }
 
     /**
      * Runs a task in parallel with arguments from 0 to bound - 1
-     * @param f runs some task, accepting an index
+     * @param f runs some task, accepting an index and the cpu core it is run on
      * @param bound number of times to loop
      */
-    public static void divideTasks(IntConsumer f, int bound) {
+    public static void divideTasks(IntBinaryConsumer f, int bound) {
         CountDownLatch latch = new CountDownLatch(NUM_CORES);
         final int taskSize = bound / NUM_CORES;
-        final int lastTaskSize = taskSize + bound - taskSize * NUM_CORES;
+        // last core does a tiny bit more work if it isn't evenly divisible
+        exc.execute(() -> {
+            for (int i = (NUM_CORES - 1) * taskSize; i < bound; i++) {
+                f.accept(i, NUM_CORES - 1);
+            }
+            latch.countDown();
+        });
         // all but last core
         for (int i = 0; i < NUM_CORES - 1; i++) {
             int finalI = i;
             exc.execute(() -> {
                 int start = finalI * taskSize;
                 for (int j = start; j < start + taskSize; j++) {
-                    f.accept(j);
+                    f.accept(j, finalI);
                 }
                 latch.countDown();
             });
         }
-        // last core
-        exc.execute(() -> {
-            for (int j = bound - lastTaskSize; j < bound; j++) {
-                f.accept(j);
-            }
-            latch.countDown();
-        });
         try {
+            // wait for threads to finish
             latch.await();
         } catch (InterruptedException e) {
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    // stuff used for radix sort
+
+    private static final int[] countArray = new int[256];
+    private static Organism[] aux = new Organism[matingPoolSize];
+
+    private static Organism[] array = new Organism[matingPoolSize];
+
+    /**
+     * Uses radix sort to sort the int array. It uses a bucket of size 256 because that is 1 byte
+     * <p>
+     * NOTE: INTEGERS ARE TREATED AS IF THEY ARE UNSIGNED!!!
+     * @param maxOrganism maximum fitness of any organism
+     */
+    public static void radixSort(int maxOrganism) {
+        System.arraycopy(matingPool, 0, array, 0, matingPoolSize);
+        // calculate number of times we need to iterate
+        int it = 0;
+        for (int shift = 0; maxOrganism >= (1<<shift) && shift < 32; shift += 8) {
+            it++;
+        }
+        for (int shift = 0; it > 0; shift += 8, it--) {
+            Arrays.fill(countArray, 0);
+            for (Organism o : array) {
+                int val = o.fitness;
+                // grab current value in base 256 (0-256)
+                countArray[val >>> shift & 0xff]++;
+            }
+            // sum up count array
+            for (int j = 1; j < 256; j++) {
+                countArray[j] += countArray[j - 1];
+            }
+            for (int j = matingPoolSize - 1; j >= 0; j--) {
+                // set aux of the count of the current element in base 256 to current element,
+                // and decrement the count array.
+                aux[--countArray[array[j].fitness >>> shift & 0xff]] = array[j];
+            }
+            // swap arrays
+            Organism[] temp = aux;
+            aux = array;
+            array = temp;
+        }
+        matingPool = array;
     }
 
     public static int getGeneration() {
@@ -138,6 +194,10 @@ public class Genetic {
 
     public static int[] getBest() {
         return matingPool[0].path;
+    }
+
+    public static int getBestFitness() {
+        return matingPool[0].fitness;
     }
 
     public static Organism[] KRandomTours(int K) {
@@ -210,7 +270,7 @@ public class Genetic {
      * @param parent2   the second parent
      * @param offspring the baby to write to
      */
-    public static void orderCrossover(int[] parent1, int[] parent2, int[] offspring) {
+    public static void orderCrossover(int[] parent1, int[] parent2, int[] offspring, int core) {
         int start = rand.nextInt(numCities);
         int end = rand.nextInt(numCities);
         if (end < start) {
@@ -219,20 +279,21 @@ public class Genetic {
             end = start;
             start = temp;
         }
-        boolean[] visited = new boolean[numCities];
+        boolean[] vis = visited[core];
+        Arrays.fill(vis, false);
         for (int i = start; i <= end; i++) {
             int num = parent1[i];
-            visited[num] = true;
+            vis[num] = true;
             offspring[i] = num;
         }
         // keep track of current index in parent 2
         int idx = (end + 1) % numCities;
         for (int i = end + 1; i < numCities; i++, idx = (idx + 1) % numCities) {
-            while (visited[parent2[idx]]) idx = (idx + 1) % numCities;
+            while (vis[parent2[idx]]) idx = (idx + 1) % numCities;
             offspring[i] = parent2[idx];
         }
         for (int i = 0; i < start; i++, idx = (idx + 1) % numCities) {
-            while (visited[parent2[idx]]) idx = (idx + 1) % numCities;
+            while (vis[parent2[idx]]) idx = (idx + 1) % numCities;
             offspring[i] = parent2[idx];
         }
     }
@@ -312,7 +373,7 @@ public class Genetic {
      * @param parent2   the second parent
      * @param offspring the baby to write to
      */
-    public static void pmCrossover(int[] parent1, int[] parent2, int[] offspring) {
+    public static void pmCrossover(int[] parent1, int[] parent2, int[] offspring, int core) {
         int start = rand.nextInt(numCities);
         int end = rand.nextInt(numCities);
         if (end < start) {
@@ -321,20 +382,21 @@ public class Genetic {
             end = start;
             start = temp;
         }
-        boolean[] visited = new boolean[numCities];
+        boolean[] vis = visited[core];
+        Arrays.fill(vis, false);
         for (int i = start; i <= end; i++) {
             int num = parent1[i];
-            visited[num] = true;
+            vis[num] = true;
             offspring[i] = num;
         }
         // keep track of current index in parent 2
         int idx = 0;
         for (int i = 0; i < start; i++, idx++) {
-            while (visited[parent2[idx]]) idx++;
+            while (vis[parent2[idx]]) idx++;
             offspring[i] = parent2[idx];
         }
         for (int i = end + 1; i < numCities; i++, idx++) {
-            while (visited[parent2[idx]]) idx++;
+            while (vis[parent2[idx]]) idx++;
             offspring[i] = parent2[idx];
         }
     }
@@ -347,17 +409,18 @@ public class Genetic {
      * @param parent2   the second parent
      * @param offspring the baby to write to
      */
-    public static void cycleCrossover(int[] parent1, int[] parent2, int[] offspring) {
+    public static void cycleCrossover(int[] parent1, int[] parent2, int[] offspring, int core) {
         // store the location of each position for faster lookup later
+        int[] loc = locations[core];
         for (int i = 0; i < numCities; i++) {
-            locations[parent1[i]] = i;
+            loc[parent1[i]] = i;
         }
         boolean[] visited = new boolean[numCities];
         int curr = 0;
         do {
             visited[curr] = true;
             offspring[curr] = parent1[curr];
-            curr = locations[parent2[curr]];
+            curr = loc[parent2[curr]];
         } while (!visited[curr]);
         for (int i = 0; i < numCities; i++) {
             if (!visited[i]) offspring[i] = parent2[i];
