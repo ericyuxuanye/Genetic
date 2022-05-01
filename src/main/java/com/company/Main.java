@@ -138,8 +138,10 @@ public class Main {
         matingPoolSize = new JSpinner(new SpinnerNumberModel(Genetic.matingPoolSize, 1, 5000, 1));
         matingPoolSize.addChangeListener(e -> {
             Genetic.matingPoolSize = ((SpinnerNumberModel)matingPoolSize.getModel()).getNumber().intValue();
-            survival.setModel(new SpinnerNumberModel(Genetic.matingPoolSize / 2, 1, 5000, 1));
-            numTournament.setModel(new SpinnerNumberModel((Genetic.matingPoolSize - Genetic.survival) / 10, 1, Genetic.survival, 1));
+            Genetic.survival = Genetic.matingPoolSize / 2;
+            Genetic.numTournament = Genetic.survival / 10;
+            survival.setModel(new SpinnerNumberModel(Genetic.survival, 1, 5000, 1));
+            numTournament.setModel(new SpinnerNumberModel(Genetic.numTournament, 1, Genetic.survival, 1));
         });
         controlPanel.add(new JLabel("Mating Pool Size"));
         controlPanel.add(matingPoolSize);
@@ -147,7 +149,8 @@ public class Main {
         survival = new JSpinner(new SpinnerNumberModel(Genetic.survival, 1, Genetic.matingPoolSize, 1));
         survival.addChangeListener(e -> {
             Genetic.survival = ((SpinnerNumberModel) survival.getModel()).getNumber().intValue();
-            numTournament.setModel(new SpinnerNumberModel(Genetic.matingPoolSize - Genetic.survival / 10, 1, Genetic.matingPoolSize, 1));
+            Genetic.numTournament = Genetic.survival / 10;
+            numTournament.setModel(new SpinnerNumberModel(Genetic.numTournament, 1, Genetic.matingPoolSize, 1));
         });
         controlPanel.add(new JLabel("Survival Number"));
         controlPanel.add(survival);
@@ -222,12 +225,19 @@ public class Main {
                 crossoverAlgorithm.setEnabled(true);
                 mutationAlgorithm.setEnabled(true);
                 mutationProbability.setEnabled(true);
-                timer.stop();
+                visualizer.repaint();
+                generation.setText(String.valueOf(Genetic.getGeneration()));
+                fitness.setText(String.valueOf(Genetic.getBestFitness()));
             } else {
                 // we want to play
                 playPause.setIcon(pauseIcon);
                 running = true;
                 if (isReset) {
+                    if (Genetic.numCities == 0) {
+                        JOptionPane.showMessageDialog(frame, "Cannot have no cities", "Error", JOptionPane.WARNING_MESSAGE);
+                        playPause.setIcon(playIcon);
+                        return;
+                    }
                     isReset = false;
                     Genetic.reset();
                 }

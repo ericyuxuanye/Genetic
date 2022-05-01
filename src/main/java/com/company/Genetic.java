@@ -154,15 +154,10 @@ public class Genetic {
                 case ORDER -> orderCrossover(parent1, parent2, matingPool[survival + j].path, core);
                 default -> throw new IllegalStateException("Unexpected value: " + crossoverAlgorithm);
             }
-            if (reverseMutation) {
-                // by chance, mutate
-                if (rand.nextDouble() < mutationProbability) {
-                    reverseMutation(matingPool[survival + j].path);
-                }
-            } else {
-                twoPointMutation(matingPool[survival + j].path);
+            if (rand.nextDouble() < mutationProbability) {
+                if (reverseMutation) reverseMutation(matingPool[survival + j].path);
+                else twoPointMutation(matingPool[survival + j].path);
             }
-
             matingPool[survival + j].fitness = tourFitness(matingPool[survival + j].path);
         }, matingPoolSize - survival);
         Arrays.sort(matingPool, Comparator.comparingInt(o -> o.fitness));
@@ -390,15 +385,12 @@ public class Genetic {
      * @param offspring the array to mutate
      */
     public static void twoPointMutation(int[] offspring) {
-        for (int i = 0; i < numCities - 1; i++) {
-            if (rand.nextDouble() < mutationProbability) {
-                int point = rand.nextInt(i, numCities);
-                // swap
-                int temp = offspring[i];
-                offspring[i] = offspring[point];
-                offspring[point] = temp;
-            }
-        }
+        int point1 = rand.nextInt(numCities);
+        int point2 = rand.nextInt(numCities);
+        // swap
+        int temp = offspring[point1];
+        offspring[point1] = offspring[point2];
+        offspring[point2] = temp;
     }
 
     public static int[] randomTour() {

@@ -128,9 +128,11 @@ public class Visualizer extends JPanel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        drawingRect = false;
-        Genetic.deletePoints(rectX, rectY, rectX + rectWidth, rectY + rectHeight);
-        repaint();
+        if (drawingRect) {
+            drawingRect = false;
+            Genetic.deletePoints(rectX, rectY, rectX + rectWidth, rectY + rectHeight);
+            repaint();
+        }
     }
 
     @Override
