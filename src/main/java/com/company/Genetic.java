@@ -10,16 +10,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Genetic {
-    public static final int numCities = 800;
-    public static final boolean isCaseStudy = false;
-    public static final int matingPoolSize = 2000;
+    public static int numCities = 21;
+    public static boolean isCaseStudy = true;
+    public static int matingPoolSize = 2000;
 
     public static final Random rand = new Random();
-    public static final Point[] cities = new Point[numCities];
-    public static final int[][] distances = new int[numCities][numCities];
+    public static Point[] cities;
+    public static int[][] distances;
 
-    public static final int width = 1600;
-    public static final int height = 900;
+    public static final int width = 1200;
+    public static final int height = 800;
 
 
     private static final int NUM_CORES = Runtime.getRuntime().availableProcessors();
@@ -32,72 +32,137 @@ public class Genetic {
     /**
      * Probability of mutation
      */
-    public static final double mutationProbability = 0.3;
+    public static double mutationProbability = 0.3;
 
     /**
      * Number that survives each round
      */
-    public static final int survival = 1100;
+    public static int survival = 1100;
 
     /**
      * The number of organisms that compete in the tournament
      */
-    public static final int numTournament = 7;
+    public static int numTournament = 7;
 
     /**
      * Stores position of each city. Used in cycleCrossover
      */
-    private static final int[][] locations = new int[NUM_CORES][numCities];
-    private static final boolean[][] visited = new boolean[NUM_CORES][numCities];
+    private static final int[][] locations = new int[NUM_CORES][];
+    private static final boolean[][] visited = new boolean[NUM_CORES][];
 
     private static class Organism {
         int[] path;
         int fitness;
     }
     private static Organism[] matingPool;
-    private static final int[] fitnessSum = new int[survival + 1];
-    private static final long[] weights = new long[survival + 1];
+    private static int[] fitnessSum;
+    private static long[] weights;
 
     private static int currentGen = 0;
 
+    public static final int PARTIALLY_MAPPED = 0;
+    public static final int CYCLE = 1;
+    public static final int ORDER = 2;
 
-    static {
+    public static void clear() {
+        cities = new Point[0];
+        numCities = 0;
+    }
+
+    public static void addPoint(int x, int y) {
+        isCaseStudy = false;
+        Point[] temp = new Point[numCities + 1];
+        System.arraycopy(cities, 0, temp, 0, numCities);
+        temp[numCities] = new Point(x, y);
+        numCities++;
+        cities = temp;
+        Main.updateNumCities();
+    }
+
+    /**
+     * Deletes points within the specified rectangle
+     * @param x1 the x coordinate of the top left corner of rectangle
+     * @param y1 the y coordinate of the top left corner of rectangle
+     * @param x2 the x coordinate of the bottom right corner of rectangle
+     * @param y2 the y coordinate of the bottom right corner of rectangle
+     */
+    public static void deletePoints(int x1, int y1, int x2, int y2) {
+        isCaseStudy = false;
+        cities = Arrays.stream(cities)
+                .filter((Point p) -> p.x < x1 || p.x > x2 || p.y < y1 || p.y > y2)
+                .toArray(Point[]::new);
+        numCities = cities.length;
+        Main.updateNumCities();
+    }
+
+    public static void generateCities() {
+        cities = new Point[numCities];
         if (isCaseStudy) {
-            if (numCities != 21) {
-                // Sure, we could reset numCities, but I would like to keep it as
-                // a final variable
-                System.err.println("numCities has to be 21 if using case study cities");
-                System.exit(1);
-            }
             caseStudyCities();
         } else {
             randomCities();
+        }
+    }
+
+    public static void resetGenerationCount() {
+        currentGen = 0;
+    }
+
+    public static void reset() {
+        distances = new int[numCities][numCities];
+        if (isCaseStudy) {
+            caseStudyDistances();
+        } else {
             calculateDistances();
         }
-
+        for (int i = 0; i < NUM_CORES; i++) {
+            locations[i] = new int[numCities];
+            visited[i] = new boolean[numCities];
+        }
+        matingPool = new Organism[matingPoolSize];
+        fitnessSum = new int[survival + 1];
+        weights = new long[survival + 1];
         //Pick random tours to make up mating pool
         matingPool = KRandomTours(matingPoolSize);
         Arrays.sort(matingPool, Comparator.comparingInt(x -> x.fitness));
     }
 
-    public static void nextGen() {
+    public static void nextGen(boolean rouletteSelection, int crossoverAlgorithm, boolean reverseMutation) {
         currentGen++;
-        //int maxFitness = 0;
-        for (int j = 0; j < survival; j++) {
-            //maxFitness = Math.max(maxFitness, matingPool[j].fitness);
-            fitnessSum[j + 1] = fitnessSum[j] + matingPool[j].fitness;
-        }
-        int sum = fitnessSum[survival];
-        for (int j = 0; j < survival; j++) {
-            weights[j + 1] = weights[j] + sum - fitnessSum[j];
+        if (rouletteSelection) {
+            for (int j = 0; j < survival; j++) {
+                fitnessSum[j + 1] = fitnessSum[j] + matingPool[j].fitness;
+            }
+            int sum = fitnessSum[survival];
+            for (int j = 0; j < survival; j++) {
+                weights[j + 1] = weights[j] + sum - fitnessSum[j];
+            }
         }
         divideTasks((j, core) -> {
             // choose the best performer randomly
-            int[] parent1 = matingPool[rouletteSelect(weights)].path;
-            int[] parent2 = matingPool[rouletteSelect(weights)].path;
-            orderCrossover(parent1, parent2, matingPool[survival + j].path, core);
-            // by chance, mutate
-            if (rand.nextDouble() <= mutationProbability) mutate(matingPool[survival + j].path);
+            int[] parent1, parent2;
+            if (rouletteSelection) {
+                parent1 = matingPool[rouletteSelect(weights)].path;
+                parent2 = matingPool[rouletteSelect(weights)].path;
+            } else {
+                parent1 = matingPool[tournamentSelect()].path;
+                parent2 = matingPool[tournamentSelect()].path;
+            }
+            switch (crossoverAlgorithm) {
+                case PARTIALLY_MAPPED -> pmCrossover(parent1, parent2, matingPool[survival + j].path, core);
+                case CYCLE -> cycleCrossover(parent1, parent2, matingPool[survival + j].path, core);
+                case ORDER -> orderCrossover(parent1, parent2, matingPool[survival + j].path, core);
+                default -> throw new IllegalStateException("Unexpected value: " + crossoverAlgorithm);
+            }
+            if (reverseMutation) {
+                // by chance, mutate
+                if (rand.nextDouble() < mutationProbability) {
+                    reverseMutation(matingPool[survival + j].path);
+                }
+            } else {
+                twoPointMutation(matingPool[survival + j].path);
+            }
+
             matingPool[survival + j].fitness = tourFitness(matingPool[survival + j].path);
         }, matingPoolSize - survival);
         Arrays.sort(matingPool, Comparator.comparingInt(o -> o.fitness));
@@ -303,7 +368,7 @@ public class Genetic {
      *
      * @param offspring the offspring array to mutate
      */
-    public static void mutate(int[] offspring) {
+    public static void reverseMutation(int[] offspring) {
         // introduce some mutation
         int start = rand.nextInt(numCities);
         int end = rand.nextInt(numCities);
@@ -317,6 +382,22 @@ public class Genetic {
             int temp = offspring[start];
             offspring[start] = offspring[end];
             offspring[end] = temp;
+        }
+    }
+
+    /**
+     * Selects two points on the list and swaps them
+     * @param offspring the array to mutate
+     */
+    public static void twoPointMutation(int[] offspring) {
+        for (int i = 0; i < numCities - 1; i++) {
+            if (rand.nextDouble() < mutationProbability) {
+                int point = rand.nextInt(i, numCities);
+                // swap
+                int temp = offspring[i];
+                offspring[i] = offspring[point];
+                offspring[point] = temp;
+            }
         }
     }
 
@@ -350,14 +431,13 @@ public class Genetic {
     /**
      * Randomly selects a number of organisms (chosen by numTournament) and returns the best
      *
-     * @param matingPool the mating pool
      * @return the selected parent
      */
-    public static int tournamentSelect(int[][] matingPool) {
+    public static int tournamentSelect() {
         int best = Integer.MAX_VALUE;
         int result = -1;
         for (int i = 0; i < numTournament; i++) {
-            int curr = tourFitness(matingPool[rand.nextInt(matingPoolSize)]);
+            int curr = matingPool[rand.nextInt(matingPoolSize)].fitness;
             if (curr < best) {
                 best = curr;
                 result = i;
@@ -459,6 +539,9 @@ public class Genetic {
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    public static void caseStudyDistances() {
         // read in distances
         try (BufferedReader br = new BufferedReader(new InputStreamReader(Objects.requireNonNull(Genetic.class.getResourceAsStream("/Data.txt"))))) {
             for (int i = 0; i < numCities; i++) {
